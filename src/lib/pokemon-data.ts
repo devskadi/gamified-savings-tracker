@@ -6,47 +6,35 @@ import { PokemonEvolutionLine, PokemonStage } from '@/types';
 
 /**
  * Base URL for PokéAPI sprites
- * Using the official GitHub-hosted sprites for reliability
+ * Using Pokemon HOME sprites for high-quality artwork
  */
 const SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 
 /**
- * Get sprite URL for a given Pokemon ID
- * Uses the default front sprite
+ * Get Pokemon HOME sprite URL (high-quality official artwork)
  */
-const getSprite = (id: number | string): string => `${SPRITE_BASE}/${id}.png`;
+const getHomeSprite = (id: number | string): string =>
+  `${SPRITE_BASE}/other/home/${id}.png`;
 
 /**
- * Get animated sprite URL (Gen 5 style)
- * Note: Animated sprites only exist for Pokemon IDs 1-649 (Gen 1-5)
- * For newer Pokemon and regional forms, we use showdown sprites
+ * Get official artwork sprite URL (Ken Sugimori style)
  */
-const getAnimatedSprite = (id: number | string): string => {
-  const numId = typeof id === 'string' ? parseInt(id) : id;
-  // Gen 5 animated sprites exist for IDs 1-649
-  if (numId <= 649) {
-    return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${numId}.gif`;
-  }
-  // For newer Pokemon, use Pokemon Showdown's animated sprites
-  return `https://play.pokemonshowdown.com/sprites/ani/${id}.gif`;
-};
+const getOfficialArtwork = (id: number | string): string =>
+  `${SPRITE_BASE}/other/official-artwork/${id}.png`;
 
 /**
- * Helper to create a Pokemon stage with both static and animated sprites
+ * Helper to create a Pokemon stage with HOME sprites
  */
 const createStage = (id: number | string, name: string): PokemonStage => {
   const numId = typeof id === 'string' ? parseInt(id) : id;
-  // Convert name to showdown format for newer Pokemon (lowercase, no special chars)
-  const showdownName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
   return {
     id: numId,
     name,
-    spriteUrl: getSprite(id),
-    // Use appropriate animated sprite source
-    animatedSpriteUrl: numId <= 649
-      ? getAnimatedSprite(numId)
-      : `https://play.pokemonshowdown.com/sprites/ani/${showdownName}.gif`,
+    // Primary: Pokemon HOME sprite (high quality, consistent style)
+    spriteUrl: getHomeSprite(id),
+    // Fallback: Official artwork
+    animatedSpriteUrl: getOfficialArtwork(id),
   };
 };
 

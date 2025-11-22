@@ -6,7 +6,7 @@
 // A modern savings tracker with Pokédex aesthetics
 // inspired by Pokémon FireRed/LeafGreen
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   PokedexFrame,
   PartyView,
@@ -18,11 +18,16 @@ import {
   SuggestionBox,
   BackgroundPicker,
 } from '@/components';
+import { DashboardView } from '@/components/DashboardView';
+import { AchievementsPanel } from '@/components/AchievementsPanel';
 import { useSavings } from '@/hooks/useSavings';
+import { useAchievements } from '@/hooks/useAchievements';
 import { useAudio } from '@/hooks/useAudio';
 import { getPokemonLine, TYPE_COLORS } from '@/lib/pokemon-data';
 import { calculateAccountStats } from '@/lib/level-calculator';
 import { LevelUpEvent, AppView, BackgroundConfig } from '@/types';
+
+type MainTab = 'party' | 'dashboard';
 
 /**
  * Main application component
@@ -48,10 +53,30 @@ export default function HomePage() {
     updateSettings,
     clearAllData,
     canAddAccount,
+    totalSavedAllAccounts,
   } = useSavings();
 
   // Audio system
   const { play } = useAudio(settings);
+
+  // Calculate stats for achievements hook
+  const accountsStatsOnly = useMemo(
+    () => accountsWithStats.map(({ stats }) => stats),
+    [accountsWithStats]
+  );
+
+  // Achievements system
+  const {
+    achievements,
+    activityLog,
+    addActivityEntry,
+    unlockedCount,
+    totalAchievements,
+  } = useAchievements(accounts, accountsStatsOnly, totalSavedAllAccounts);
+
+  // Main tab state
+  const [mainTab, setMainTab] = useState<MainTab>('party');
+  const [showAchievements, setShowAchievements] = useState(false);
 
   // UI state
   const [currentView, setCurrentView] = useState<AppView>('party');
@@ -110,13 +135,21 @@ export default function HomePage() {
       if (newAccount) {
         play('select');
         setShowPokemonSelector(false);
+        // Log activity
+        const pokemonLine = getPokemonLine(pokemonLineId);
+        addActivityEntry({
+          type: 'new_pokemon',
+          accountId: newAccount.id,
+          accountNickname: nickname,
+          pokemonName: pokemonLine?.stages[0].name || nickname,
+        });
         // Auto-select the new Pokemon
         handleSelectAccount(newAccount.id);
       } else {
         play('error');
       }
     },
-    [createAccount, play, handleSelectAccount]
+    [createAccount, play, handleSelectAccount, addActivityEntry]
   );
 
   /**
@@ -136,7 +169,16 @@ export default function HomePage() {
    */
   const handleAddEntry = useCallback(
     (accountId: string, amount: number, note?: string) => {
+      const account = getAccount(accountId);
       const event = addEntry(accountId, amount, note);
+
+      // Log deposit/withdraw activity
+      addActivityEntry({
+        type: amount > 0 ? 'deposit' : 'withdraw',
+        accountId,
+        accountNickname: account?.nickname,
+        amount,
+      });
 
       if (event) {
         // Level up or evolution occurred!
@@ -145,15 +187,31 @@ export default function HomePage() {
         if (event.evolved) {
           setIsEvolving(true);
           play('evolution');
+          // Log evolution
+          addActivityEntry({
+            type: 'evolution',
+            accountId,
+            accountNickname: account?.nickname,
+            oldStage: event.oldStage,
+            newStage: event.newStage,
+          });
         } else {
           setIsLevelingUp(true);
           play('levelUp');
+          // Log level up
+          addActivityEntry({
+            type: 'level_up',
+            accountId,
+            accountNickname: account?.nickname,
+            oldLevel: event.oldLevel,
+            newLevel: event.newLevel,
+          });
         }
       } else {
         play('add');
       }
     },
-    [addEntry, play]
+    [addEntry, play, getAccount, addActivityEntry]
   );
 
   /**
@@ -252,10 +310,49 @@ export default function HomePage() {
 
   // ==================== RENDER ====================
 
+  // Check if we're in a detail view (not main tabs)
+  const isDetailView = currentView === 'pokemon-detail';
+
   return (
     <PokedexFrame>
+      {/* Tab Navigation - only show when not in detail view */}
+      {!isDetailView && (
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => {
+              play('button');
+              setMainTab('party');
+            }}
+            className={`
+              flex-1 py-2.5 px-4 rounded-xl font-medium text-sm transition-all
+              ${mainTab === 'party'
+                ? 'bg-red-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }
+            `}
+          >
+            Party
+          </button>
+          <button
+            onClick={() => {
+              play('button');
+              setMainTab('dashboard');
+            }}
+            className={`
+              flex-1 py-2.5 px-4 rounded-xl font-medium text-sm transition-all
+              ${mainTab === 'dashboard'
+                ? 'bg-red-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }
+            `}
+          >
+            Dashboard
+          </button>
+        </div>
+      )}
+
       {/* Party View */}
-      {currentView === 'party' && (
+      {!isDetailView && mainTab === 'party' && (
         <PartyView
           accounts={accountsWithStats}
           settings={settings}
@@ -266,6 +363,22 @@ export default function HomePage() {
             play('open');
             setShowSuggestions(true);
           }}
+        />
+      )}
+
+      {/* Dashboard View */}
+      {!isDetailView && mainTab === 'dashboard' && (
+        <DashboardView
+          accounts={accountsWithStats}
+          settings={settings}
+          achievements={achievements}
+          activityLog={activityLog}
+          totalSaved={totalSavedAllAccounts}
+          onViewAchievements={() => {
+            play('open');
+            setShowAchievements(true);
+          }}
+          onOpenSettings={handleOpenSettings}
         />
       )}
 
@@ -337,6 +450,17 @@ export default function HomePage() {
           onCancel={() => {
             play('close');
             setShowBackgroundPicker(false);
+          }}
+        />
+      )}
+
+      {/* Achievements Panel Modal */}
+      {showAchievements && (
+        <AchievementsPanel
+          achievements={achievements}
+          onClose={() => {
+            play('close');
+            setShowAchievements(false);
           }}
         />
       )}

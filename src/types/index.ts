@@ -165,6 +165,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
  */
 export type AppView =
   | 'party' // Main party view showing all Pokemon
+  | 'dashboard' // Dashboard with stats and achievements
   | 'pokemon-detail' // Viewing a specific Pokemon's details
   | 'pokemon-select' // Selecting a new Pokemon to add
   | 'settings'; // Settings screen
@@ -246,3 +247,147 @@ export const BACKGROUND_THEMES: Record<
     textColor: '#2a1a3a',
   },
 };
+
+// ============================================
+// Achievement System Types
+// ============================================
+
+/**
+ * Achievement IDs for all available achievements
+ */
+export type AchievementId =
+  | 'first_steps'      // Create your first savings goal
+  | 'first_evolution'  // Evolve a Pokemon for the first time
+  | 'full_party'       // Fill all 6 slots
+  | 'level_50'         // Get a Pokemon to level 50
+  | 'master_trainer'   // Get a Pokemon to level 100
+  | 'final_form'       // Fully evolve a Pokemon (stage 3)
+  | 'goal_crusher'     // Reach 100% of a savings goal
+  | 'big_saver'        // Have $1000+ total saved
+  | 'dedicated'        // Make 10+ deposits
+  | 'collector';       // Have 3+ fully evolved Pokemon
+
+/**
+ * Achievement definition
+ */
+export interface Achievement {
+  id: AchievementId;
+  name: string;
+  description: string;
+  icon: string; // Emoji icon
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+}
+
+/**
+ * User's achievement progress
+ */
+export interface AchievementProgress {
+  unlockedAt: string | null; // ISO timestamp when unlocked, null if locked
+  progress?: number; // Optional progress value (e.g., 7/10 deposits)
+  target?: number; // Optional target value
+}
+
+/**
+ * All achievements with their definitions
+ */
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first_steps',
+    name: 'First Steps',
+    description: 'Create your first savings goal',
+    icon: '🥚',
+    rarity: 'common',
+  },
+  {
+    id: 'first_evolution',
+    name: 'First Evolution',
+    description: 'Evolve a Pokemon for the first time',
+    icon: '🌱',
+    rarity: 'common',
+  },
+  {
+    id: 'full_party',
+    name: 'Full Party',
+    description: 'Fill all 6 Pokemon slots',
+    icon: '👥',
+    rarity: 'uncommon',
+  },
+  {
+    id: 'level_50',
+    name: 'Level 50 Club',
+    description: 'Get a Pokemon to level 50',
+    icon: '⭐',
+    rarity: 'uncommon',
+  },
+  {
+    id: 'master_trainer',
+    name: 'Master Trainer',
+    description: 'Get a Pokemon to level 100',
+    icon: '🏆',
+    rarity: 'legendary',
+  },
+  {
+    id: 'final_form',
+    name: 'Final Form',
+    description: 'Fully evolve a Pokemon to its final stage',
+    icon: '💎',
+    rarity: 'rare',
+  },
+  {
+    id: 'goal_crusher',
+    name: 'Goal Crusher',
+    description: 'Reach 100% of a savings goal',
+    icon: '🎯',
+    rarity: 'rare',
+  },
+  {
+    id: 'big_saver',
+    name: 'Big Saver',
+    description: 'Have $1000+ total saved across all accounts',
+    icon: '💰',
+    rarity: 'epic',
+  },
+  {
+    id: 'dedicated',
+    name: 'Dedicated',
+    description: 'Make 10 or more deposits',
+    icon: '📈',
+    rarity: 'uncommon',
+  },
+  {
+    id: 'collector',
+    name: 'Collector',
+    description: 'Have 3 or more fully evolved Pokemon',
+    icon: '🌟',
+    rarity: 'epic',
+  },
+];
+
+/**
+ * Rarity colors for achievements
+ */
+export const RARITY_COLORS: Record<Achievement['rarity'], { bg: string; border: string; text: string }> = {
+  common: { bg: '#f3f4f6', border: '#d1d5db', text: '#374151' },
+  uncommon: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+  rare: { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
+  epic: { bg: '#f3e8ff', border: '#c4b5fd', text: '#6b21a8' },
+  legendary: { bg: '#fef3c7', border: '#fcd34d', text: '#92400e' },
+};
+
+/**
+ * Activity log entry for recent activity feed
+ */
+export interface ActivityLogEntry {
+  id: string;
+  type: 'deposit' | 'withdraw' | 'level_up' | 'evolution' | 'achievement' | 'new_pokemon';
+  accountId?: string; // Associated Pokemon account
+  accountNickname?: string;
+  amount?: number; // For deposit/withdraw
+  oldLevel?: number; // For level up
+  newLevel?: number;
+  oldStage?: number; // For evolution
+  newStage?: number;
+  achievementId?: AchievementId; // For achievement unlock
+  pokemonName?: string; // For new pokemon
+  createdAt: string; // ISO timestamp
+}

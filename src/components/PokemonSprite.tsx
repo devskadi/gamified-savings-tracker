@@ -135,10 +135,9 @@ export function PokemonSprite({
           ${isLoaded ? 'opacity-100' : 'opacity-0'}
           transition-opacity duration-300
           object-contain
-          drop-shadow-lg
         `}
         style={{
-          imageRendering: isAnimatedGif ? 'auto' : 'pixelated',
+          imageRendering: 'auto', // Smooth rendering for HOME sprites
         }}
         onLoad={() => setIsLoaded(true)}
         onError={handleError}

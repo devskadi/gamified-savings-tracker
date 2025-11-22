@@ -13,8 +13,6 @@ import {
   TYPE_COLORS,
 } from '@/lib/pokemon-data';
 import { PokemonSprite } from './PokemonSprite';
-import { PixelButton } from './PixelButton';
-import { PixelInput } from './PixelInput';
 
 interface PokemonSelectorProps {
   settings: UserSettings;
@@ -42,18 +40,6 @@ export function PokemonSelector({
   const [nickname, setNickname] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
 
-  // Group Pokemon by generation
-  const generations = useMemo(() => {
-    const gens: Record<number, PokemonEvolutionLine[]> = {};
-    POKEMON_LINES.forEach((line) => {
-      if (!gens[line.generation]) {
-        gens[line.generation] = [];
-      }
-      gens[line.generation].push(line);
-    });
-    return gens;
-  }, []);
-
   // Filter Pokemon based on type and generation
   const filteredPokemon = useMemo(() => {
     return POKEMON_LINES.filter((line) => {
@@ -71,8 +57,7 @@ export function PokemonSelector({
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     if (!selectedPokemon || !targetAmount) return;
 
     const target = parseFloat(targetAmount);
@@ -88,14 +73,18 @@ export function PokemonSelector({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-hidden border-4 border-gray-800 rounded-lg"
-        style={{ backgroundColor: '#E8DCC4' }}
+        className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8"
+        onClick={(e) => e.stopPropagation()}
       >
         {viewState === 'select' ? (
           <SelectionView
-            generations={generations}
             filteredPokemon={filteredPokemon}
             filter={filter}
             selectedGen={selectedGen}
@@ -125,7 +114,6 @@ export function PokemonSelector({
 // ==================== Selection View ====================
 
 interface SelectionViewProps {
-  generations: Record<number, PokemonEvolutionLine[]>;
   filteredPokemon: PokemonEvolutionLine[];
   filter: FilterType;
   selectedGen: number | 'all';
@@ -147,23 +135,22 @@ function SelectionView({
   onCancel,
 }: SelectionViewProps) {
   const filterButtons: { type: FilterType; label: string; color: string }[] = [
-    { type: 'all', label: 'All', color: '#888' },
-    { type: 'grass', label: '🌿', color: TYPE_COLORS.grass.primary },
-    { type: 'fire', label: '🔥', color: TYPE_COLORS.fire.primary },
-    { type: 'water', label: '💧', color: TYPE_COLORS.water.primary },
+    { type: 'all', label: '✨ All', color: '#6b7280' },
+    { type: 'grass', label: '🌿 Grass', color: TYPE_COLORS.grass.primary },
+    { type: 'fire', label: '🔥 Fire', color: TYPE_COLORS.fire.primary },
+    { type: 'water', label: '💧 Water', color: TYPE_COLORS.water.primary },
   ];
 
   return (
-    <>
+    <div className="flex flex-col max-h-[80vh]">
       {/* Header */}
-      <div className="p-4 border-b-4 border-gray-800 bg-pokedex-red">
+      <div className="flex-shrink-0 bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 rounded-t-2xl">
         <div className="flex justify-between items-center">
-          <h2 className="text-[10px] sm:text-xs font-pixel text-white uppercase">
-            Choose Your Starter!
-          </h2>
+          <h2 className="text-lg font-bold text-white">Choose Your Starter!</h2>
           <button
+            type="button"
             onClick={onCancel}
-            className="text-white hover:text-gray-200 text-xl leading-none"
+            className="text-white/80 hover:text-white text-2xl leading-none p-1"
           >
             ×
           </button>
@@ -171,21 +158,23 @@ function SelectionView({
       </div>
 
       {/* Filters */}
-      <div className="p-3 border-b-4 border-gray-800 bg-cream-dark flex flex-wrap gap-2">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100 bg-gray-50 space-y-2">
         {/* Type filter */}
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-2">
           {filterButtons.map((btn) => (
             <button
               key={btn.type}
+              type="button"
               onClick={() => onFilterChange(btn.type)}
               className={`
-                px-2 py-1 text-[8px] font-pixel border-2 border-gray-800 rounded
-                transition-all
-                ${filter === btn.type ? 'scale-110' : 'opacity-70 hover:opacity-100'}
+                px-3 py-1.5 text-sm font-medium rounded-full transition-all
+                ${filter === btn.type
+                  ? 'text-white shadow-sm'
+                  : 'bg-white text-gray-600 border border-gray-200'
+                }
               `}
               style={{
-                backgroundColor: filter === btn.type ? btn.color : '#ccc',
-                color: filter === btn.type ? 'white' : '#333',
+                backgroundColor: filter === btn.type ? btn.color : undefined,
               }}
             >
               {btn.label}
@@ -199,9 +188,9 @@ function SelectionView({
           onChange={(e) =>
             onGenChange(e.target.value === 'all' ? 'all' : parseInt(e.target.value))
           }
-          className="px-2 py-1 text-[8px] font-pixel border-2 border-gray-800 rounded bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
         >
-          <option value="all">All Gens</option>
+          <option value="all">All Generations</option>
           {Object.keys(GENERATION_NAMES).map((gen) => (
             <option key={gen} value={gen}>
               Gen {gen} - {GENERATION_NAMES[parseInt(gen)]}
@@ -210,47 +199,57 @@ function SelectionView({
         </select>
       </div>
 
-      {/* Pokemon Grid */}
-      <div className="p-3 overflow-y-auto max-h-[50vh] pixel-scrollbar">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {/* Pokemon Grid - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        <div className="grid grid-cols-3 gap-3">
           {filteredPokemon.map((pokemon) => {
             const isUsed = usedPokemonIds.includes(pokemon.id);
-            const colors = TYPE_COLORS[pokemon.type];
+            const typeColor = TYPE_COLORS[pokemon.type];
 
             return (
               <button
                 key={pokemon.id}
+                type="button"
                 onClick={() => !isUsed && onSelectPokemon(pokemon)}
                 disabled={isUsed}
                 className={`
-                  p-2 border-4 border-gray-800 rounded text-center
-                  transition-transform
-                  ${isUsed ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
+                  relative p-2 rounded-xl border-2 transition-all text-center
+                  ${isUsed
+                    ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-200'
+                    : 'bg-white border-gray-100 hover:border-blue-400 hover:shadow-md active:scale-95'
+                  }
                 `}
-                style={{
-                  backgroundColor: isUsed ? '#ccc' : colors.light,
-                }}
               >
-                <PokemonSprite
-                  src={pokemon.stages[0].spriteUrl}
-                  alt={pokemon.stages[0].name}
-                  size="sm"
-                  idle={!isUsed}
-                  className="mx-auto"
-                />
+                {/* Type indicator */}
                 <div
-                  className="mt-1 text-[6px] sm:text-[8px] font-pixel truncate"
-                  style={{ color: '#0F380F' }}
-                >
+                  className="absolute top-0 left-0 right-0 h-1 rounded-t-lg"
+                  style={{ backgroundColor: typeColor.primary }}
+                />
+
+                {/* Pokemon sprite */}
+                <div className="flex justify-center py-1">
+                  <PokemonSprite
+                    src={pokemon.stages[0].spriteUrl}
+                    alt={pokemon.stages[0].name}
+                    size="sm"
+                    idle={!isUsed}
+                  />
+                </div>
+
+                {/* Name */}
+                <p className="text-xs font-medium text-gray-800 truncate mt-1">
                   {pokemon.name}
-                </div>
-                <div className="text-[6px] font-pixel" style={{ color: '#666' }}>
+                </p>
+                <p className="text-[10px] text-gray-400">
                   Gen {pokemon.generation}
-                  {pokemon.isHisuian && ' (H)'}
-                </div>
+                </p>
+
+                {/* Used indicator */}
                 {isUsed && (
-                  <div className="text-[6px] font-pixel text-red-600 mt-1">
-                    IN PARTY
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-xl">
+                    <span className="text-[10px] font-medium text-gray-500 bg-white px-2 py-0.5 rounded-full">
+                      In Party
+                    </span>
                   </div>
                 )}
               </button>
@@ -260,12 +259,16 @@ function SelectionView({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t-4 border-gray-800 bg-cream-dark">
-        <PixelButton onClick={onCancel} fullWidth>
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="w-full py-2.5 text-gray-600 font-medium bg-white rounded-lg border border-gray-200 hover:bg-gray-50"
+        >
           Cancel
-        </PixelButton>
+        </button>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -278,7 +281,7 @@ interface ConfigureViewProps {
   settings: UserSettings;
   onNicknameChange: (value: string) => void;
   onTargetChange: (value: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: () => void;
   onBack: () => void;
 }
 
@@ -292,117 +295,141 @@ function ConfigureView({
   onSubmit,
   onBack,
 }: ConfigureViewProps) {
-  const colors = TYPE_COLORS[pokemon.type];
+  const typeColor = TYPE_COLORS[pokemon.type];
   const isValid = targetAmount && parseFloat(targetAmount) > 0;
 
   return (
-    <>
+    <div className="flex flex-col">
       {/* Header */}
       <div
-        className="p-4 border-b-4 border-gray-800"
-        style={{ backgroundColor: colors.primary }}
+        className="flex-shrink-0 px-4 py-3 rounded-t-2xl"
+        style={{ background: `linear-gradient(135deg, ${typeColor.primary} 0%, ${typeColor.secondary} 100%)` }}
       >
-        <div className="flex justify-between items-center">
-          <h2 className="text-[10px] sm:text-xs font-pixel text-white uppercase">
-            Set Up Your {pokemon.stages[0].name}
-          </h2>
+        <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onBack}
-            className="text-white hover:text-gray-200 text-sm font-pixel"
+            className="text-white/80 hover:text-white p-1"
           >
-            ← Back
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
+          <h2 className="text-lg font-bold text-white">
+            Set Up {pokemon.stages[0].name}
+          </h2>
         </div>
       </div>
 
       {/* Content */}
-      <form onSubmit={onSubmit} className="p-4">
+      <div className="p-4 space-y-4">
         {/* Pokemon preview */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center">
           <div className="text-center">
             <PokemonSprite
               src={pokemon.stages[0].spriteUrl}
               alt={pokemon.stages[0].name}
-              size="lg"
+              size="xl"
               idle
             />
-            <p
-              className="text-[8px] font-pixel mt-2"
-              style={{ color: '#666' }}
-            >
-              {pokemon.stages.map((s) => s.name).join(' → ')}
-            </p>
           </div>
         </div>
 
         {/* Evolution preview */}
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex justify-center items-center gap-2 p-3 bg-gray-50 rounded-xl">
           {pokemon.stages.map((stage, i) => (
-            <div
-              key={stage.id}
-              className="text-center p-2 border-2 border-gray-600 rounded"
-              style={{ backgroundColor: colors.light }}
-            >
-              <PokemonSprite
-                src={stage.spriteUrl}
-                alt={stage.name}
-                size="sm"
-                idle={false}
-              />
-              <div className="text-[6px] font-pixel mt-1" style={{ color: '#333' }}>
-                {i === 0 ? 'Base' : i === 1 ? 'Lv.16' : 'Lv.36'}
+            <React.Fragment key={stage.id}>
+              <div className="text-center">
+                <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                  <PokemonSprite
+                    src={stage.spriteUrl}
+                    alt={stage.name}
+                    size="sm"
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  {i === 0 ? 'Base' : i === 1 ? 'Lv.16' : 'Lv.36'}
+                </p>
               </div>
-            </div>
+              {i < pokemon.stages.length - 1 && (
+                <span className="text-gray-300">→</span>
+              )}
+            </React.Fragment>
           ))}
         </div>
 
-        {/* Form fields */}
-        <div className="space-y-4">
-          <PixelInput
-            label="Nickname"
+        {/* Nickname input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nickname
+          </label>
+          <input
+            type="text"
             value={nickname}
-            onChange={onNicknameChange}
+            onChange={(e) => onNicknameChange(e.target.value)}
             placeholder={pokemon.stages[0].name}
+            className="w-full px-3 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+        </div>
 
-          <PixelInput
+        {/* Target amount input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Savings Goal ({settings.currency.symbol})
+          </label>
+          <input
             type="number"
-            label={`Savings Goal (${settings.currency.symbol})`}
             value={targetAmount}
-            onChange={onTargetChange}
+            onChange={(e) => onTargetChange(e.target.value)}
             placeholder="1000"
             min={1}
             step={0.01}
-            required
+            className="w-full px-3 py-2.5 text-lg font-medium border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-
-          {targetAmount && parseFloat(targetAmount) > 0 && (
-            <div
-              className="p-3 border-2 border-gray-600 rounded text-[8px] font-pixel"
-              style={{ backgroundColor: colors.light, color: '#333' }}
-            >
-              <p className="mb-1">Evolution milestones:</p>
-              <p>🌱 {pokemon.stages[1].name} at ~{(parseFloat(targetAmount) * 0.16).toFixed(0)} {settings.currency.symbol}</p>
-              <p>⭐ {pokemon.stages[2].name} at ~{(parseFloat(targetAmount) * 0.36).toFixed(0)} {settings.currency.symbol}</p>
-            </div>
-          )}
         </div>
 
-        {/* Submit */}
-        <div className="mt-6 flex gap-2">
-          <PixelButton onClick={onBack} fullWidth>
+        {/* Evolution milestones */}
+        {targetAmount && parseFloat(targetAmount) > 0 && (
+          <div
+            className="p-3 rounded-lg text-sm"
+            style={{ backgroundColor: `${typeColor.light}40` }}
+          >
+            <p className="font-medium text-gray-700 mb-1">Evolution milestones:</p>
+            <p className="text-gray-600">
+              🌱 {pokemon.stages[1].name} at ~{settings.currency.symbol}{(parseFloat(targetAmount) * 0.16).toFixed(0)}
+            </p>
+            <p className="text-gray-600">
+              ⭐ {pokemon.stages[2].name} at ~{settings.currency.symbol}{(parseFloat(targetAmount) * 0.36).toFixed(0)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-2.5 text-gray-600 font-medium bg-white rounded-lg border border-gray-200 hover:bg-gray-50"
+          >
             Back
-          </PixelButton>
-          <PixelButton
-            type="submit"
-            variant="success"
-            fullWidth
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
             disabled={!isValid}
+            className="flex-1 py-2.5 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: isValid ? typeColor.primary : '#9CA3AF' }}
           >
             Let&apos;s Go!
-          </PixelButton>
+          </button>
         </div>
-      </form>
-    </>
+      </div>
+    </div>
   );
+
+  function handleSubmit() {
+    onSubmit();
+  }
 }
