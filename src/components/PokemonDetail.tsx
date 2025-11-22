@@ -196,9 +196,6 @@ export function PokemonDetail({
                             ? 'bg-white/80'
                             : 'bg-gray-200/50 opacity-50'
                       }`}
-                      style={{
-                        ringColor: i === stats.evolutionStage ? typeColor.primary : undefined,
-                      }}
                     >
                       <PokemonSprite
                         src={stage.spriteUrl}
