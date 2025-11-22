@@ -3,55 +3,95 @@
 // ============================================
 // Pokemon Sprite Component
 // Displays Pokemon sprites with animations
+// Supports both static and animated (GIF) sprites
 // ============================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface PokemonSpriteProps {
   src: string;
+  animatedSrc?: string; // Animated sprite URL (GIF)
   alt: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   idle?: boolean;
   evolving?: boolean;
   levelingUp?: boolean;
+  useAnimated?: boolean; // Whether to prefer animated sprite
   className?: string;
 }
 
 /**
  * Pokemon sprite with pixel-perfect rendering and animations
+ * Supports both static PNG and animated GIF sprites
  */
 export function PokemonSprite({
   src,
+  animatedSrc,
   alt,
   size = 'md',
   idle = true,
   evolving = false,
   levelingUp = false,
+  useAnimated = true,
   className = '',
 }: PokemonSpriteProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [useStaticFallback, setUseStaticFallback] = useState(false);
+
+  // Determine which sprite to use
+  const currentSrc = useAnimated && animatedSrc && !useStaticFallback
+    ? animatedSrc
+    : src;
+
+  // Reset states when src changes
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+    setUseStaticFallback(false);
+  }, [src, animatedSrc]);
 
   const sizeClasses = {
     sm: 'w-12 h-12',
     md: 'w-20 h-20',
     lg: 'w-32 h-32',
     xl: 'w-48 h-48',
+    '2xl': 'w-64 h-64',
   };
 
-  // Animation classes
+  const sizePx = {
+    sm: 48,
+    md: 80,
+    lg: 128,
+    xl: 192,
+    '2xl': 256,
+  };
+
+  // Animation classes - don't apply CSS animations to animated GIFs
+  const isAnimatedGif = currentSrc.endsWith('.gif');
   const animationClass = evolving
     ? 'evolving'
     : levelingUp
       ? 'level-up-flash'
-      : idle
+      : idle && !isAnimatedGif
         ? 'idle'
         : '';
+
+  // Handle image load error - fall back to static sprite
+  const handleError = () => {
+    if (useAnimated && animatedSrc && !useStaticFallback) {
+      // Try static sprite as fallback
+      setUseStaticFallback(true);
+      setIsLoaded(false);
+    } else {
+      setHasError(true);
+    }
+  };
 
   // Fallback pokeball icon for errors
   const FallbackIcon = () => (
     <div
-      className={`${sizeClasses[size]} flex items-center justify-center bg-gray-200 rounded-lg border-4 border-gray-800`}
+      className={`${sizeClasses[size]} flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-300 rounded-2xl border-4 border-gray-400 shadow-inner`}
     >
       <svg
         viewBox="0 0 24 24"
@@ -71,30 +111,37 @@ export function PokemonSprite({
 
   return (
     <div className={`relative ${sizeClasses[size]} ${className}`}>
-      {/* Loading placeholder */}
+      {/* Loading placeholder with shimmer */}
       {!isLoaded && !hasError && (
         <div
-          className={`absolute inset-0 ${sizeClasses[size]} bg-gray-200 rounded animate-pulse`}
+          className={`absolute inset-0 ${sizeClasses[size]} bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-xl animate-pulse`}
+          style={{
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
+          }}
         />
       )}
 
       {/* Sprite image */}
       <img
-        src={src}
+        src={currentSrc}
         alt={alt}
+        width={sizePx[size]}
+        height={sizePx[size]}
         className={`
           pokemon-sprite
           ${animationClass}
           ${sizeClasses[size]}
           ${isLoaded ? 'opacity-100' : 'opacity-0'}
-          transition-opacity duration-200
+          transition-opacity duration-300
           object-contain
+          drop-shadow-lg
         `}
         style={{
-          imageRendering: 'pixelated',
+          imageRendering: isAnimatedGif ? 'auto' : 'pixelated',
         }}
         onLoad={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
+        onError={handleError}
         draggable={false}
       />
 

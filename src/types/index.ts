@@ -8,7 +8,8 @@
 export interface PokemonStage {
   id: number; // PokéAPI ID
   name: string; // Pokemon name (e.g., "Charmander")
-  spriteUrl: string; // URL to sprite image
+  spriteUrl: string; // URL to static sprite image
+  animatedSpriteUrl?: string; // URL to animated sprite (if available)
 }
 
 /**
@@ -34,6 +35,30 @@ export interface SavingsEntry {
 }
 
 /**
+ * Background theme options for Pokemon cards
+ */
+export type BackgroundTheme =
+  | 'default' // Uses type-based color
+  | 'forest' // Green nature theme
+  | 'ocean' // Blue water theme
+  | 'volcano' // Red fire theme
+  | 'night' // Dark purple theme
+  | 'sunset' // Orange/pink gradient
+  | 'aurora' // Teal/purple gradient
+  | 'galaxy' // Deep space theme
+  | 'meadow' // Light green/yellow
+  | 'crystal' // Ice blue theme
+  | 'custom'; // User-defined color
+
+/**
+ * Background configuration for a Pokemon
+ */
+export interface BackgroundConfig {
+  theme: BackgroundTheme;
+  customColor?: string; // Hex color for 'custom' theme
+}
+
+/**
  * A savings account represented as a Pokemon
  */
 export interface SavingsAccount {
@@ -43,6 +68,7 @@ export interface SavingsAccount {
   targetAmount: number; // Goal amount to save
   entries: SavingsEntry[]; // All savings entries
   createdAt: string; // ISO timestamp when account was created
+  background?: BackgroundConfig; // Custom background theme
 }
 
 /**
@@ -156,3 +182,67 @@ export type SoundType =
   | 'error' // Error sound
   | 'open' // Menu/modal open
   | 'close'; // Menu/modal close
+
+/**
+ * Pokemon suggestion from user
+ */
+export interface PokemonSuggestion {
+  id: string;
+  pokemonName: string;
+  reason?: string;
+  createdAt: string;
+}
+
+/**
+ * Background theme definitions with gradients
+ */
+export const BACKGROUND_THEMES: Record<
+  Exclude<BackgroundTheme, 'custom' | 'default'>,
+  { name: string; gradient: string; textColor: string }
+> = {
+  forest: {
+    name: 'Forest',
+    gradient: 'linear-gradient(135deg, #2d5a27 0%, #1a3a15 50%, #0d2a0a 100%)',
+    textColor: '#a8e6a3',
+  },
+  ocean: {
+    name: 'Ocean',
+    gradient: 'linear-gradient(135deg, #1e5799 0%, #2989d8 50%, #207cca 100%)',
+    textColor: '#b3e0ff',
+  },
+  volcano: {
+    name: 'Volcano',
+    gradient: 'linear-gradient(135deg, #8b0000 0%, #cc3300 50%, #ff4500 100%)',
+    textColor: '#ffcccc',
+  },
+  night: {
+    name: 'Night',
+    gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    textColor: '#c9b8ff',
+  },
+  sunset: {
+    name: 'Sunset',
+    gradient: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #ff9ff3 100%)',
+    textColor: '#4a0033',
+  },
+  aurora: {
+    name: 'Aurora',
+    gradient: 'linear-gradient(135deg, #00d9ff 0%, #00ffc8 25%, #7b68ee 75%, #9400d3 100%)',
+    textColor: '#ffffff',
+  },
+  galaxy: {
+    name: 'Galaxy',
+    gradient: 'linear-gradient(135deg, #0c0c1e 0%, #1a1a3e 25%, #2d1b4e 50%, #1a0a2e 100%)',
+    textColor: '#e0d0ff',
+  },
+  meadow: {
+    name: 'Meadow',
+    gradient: 'linear-gradient(135deg, #a8e063 0%, #56ab2f 50%, #7cb342 100%)',
+    textColor: '#1a3a0a',
+  },
+  crystal: {
+    name: 'Crystal',
+    gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%)',
+    textColor: '#2a1a3a',
+  },
+};

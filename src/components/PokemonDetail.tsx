@@ -12,6 +12,7 @@ import { PokemonSprite } from './PokemonSprite';
 import { ExpBar } from './ExpBar';
 import { PixelButton } from './PixelButton';
 import { PixelInput, PixelTextarea } from './PixelInput';
+import { getBackgroundStyle, getTextColor } from './BackgroundPicker';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getLevelDescription, savingsToEvolution } from '@/lib/level-calculator';
 
@@ -26,6 +27,7 @@ interface PokemonDetailProps {
   onDeleteEntry: (entryId: string) => void;
   onRelease: () => void;
   onBack: () => void;
+  onChangeBackground: () => void;
 }
 
 /**
@@ -43,6 +45,7 @@ export function PokemonDetail({
   onDeleteEntry,
   onRelease,
   onBack,
+  onChangeBackground,
 }: PokemonDetailProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -50,6 +53,11 @@ export function PokemonDetail({
 
   const currentPokemon = pokemonLine.stages[stats.evolutionStage];
   const colors = TYPE_COLORS[pokemonLine.type];
+
+  // Get background style for the main display
+  const defaultGradient = `linear-gradient(135deg, ${colors.light} 0%, ${colors.primary} 100%)`;
+  const bgStyle = getBackgroundStyle(account.background, defaultGradient);
+  const textColor = getTextColor(account.background, '#ffffff');
 
   return (
     <div className="space-y-4">
@@ -74,31 +82,47 @@ export function PokemonDetail({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left panel - Pokemon display */}
         <div
-          className="p-4 border-4 border-gray-800 rounded"
-          style={{ backgroundColor: colors.light }}
+          className="p-4 rounded-2xl relative overflow-hidden shadow-lg"
+          style={bgStyle}
         >
+          {/* Decorative elements */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full" />
+          <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/10 rounded-full" />
+
+          {/* Background change button */}
+          <button
+            onClick={onChangeBackground}
+            className="absolute top-2 right-2 p-2 bg-black/20 hover:bg-black/40 rounded-lg transition-colors z-10"
+            title="Change background"
+          >
+            <span className="text-sm">🎨</span>
+          </button>
+
           {/* Pokemon name and level */}
-          <div className="text-center mb-2">
+          <div className="text-center mb-2 relative">
             <h2
-              className="text-xs sm:text-sm font-pixel"
-              style={{ color: '#0F380F' }}
+              className="text-sm sm:text-base font-pixel"
+              style={{ color: textColor }}
             >
               {account.nickname}
             </h2>
-            <p className="text-[8px] font-pixel" style={{ color: '#666' }}>
+            <p className="text-[10px] font-pixel opacity-80" style={{ color: textColor }}>
               {currentPokemon.name}
             </p>
           </div>
 
-          {/* Pokemon sprite */}
-          <div className="flex justify-center my-4">
+          {/* Pokemon sprite - using animated */}
+          <div className="flex justify-center my-4 relative">
+            <div className="absolute inset-0 bg-white/10 rounded-full blur-2xl" />
             <PokemonSprite
               src={currentPokemon.spriteUrl}
+              animatedSrc={currentPokemon.animatedSpriteUrl}
               alt={currentPokemon.name}
-              size="xl"
+              size="2xl"
               idle={!isLevelingUp && !isEvolving}
               levelingUp={isLevelingUp}
               evolving={isEvolving}
+              useAnimated={true}
             />
           </div>
 

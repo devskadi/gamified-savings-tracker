@@ -12,6 +12,8 @@ import {
   UserSettings,
   DEFAULT_SETTINGS,
   LevelUpEvent,
+  BackgroundConfig,
+  PokemonSuggestion,
 } from '@/types';
 import {
   calculateAccountStats,
@@ -24,6 +26,7 @@ import { getPokemonLine } from '@/lib/pokemon-data';
 // localStorage keys
 const ACCOUNTS_KEY = 'pokemon-savings-accounts';
 const SETTINGS_KEY = 'pokemon-savings-settings';
+const SUGGESTIONS_KEY = 'pokemon-suggestions';
 
 // Maximum number of accounts (like a Pokemon party!)
 export const MAX_ACCOUNTS = 6;
@@ -46,6 +49,10 @@ export function useSavings() {
   const [settings, setSettings] = useLocalStorage<UserSettings>(
     SETTINGS_KEY,
     DEFAULT_SETTINGS
+  );
+  const [suggestions, setSuggestions] = useLocalStorage<PokemonSuggestion[]>(
+    SUGGESTIONS_KEY,
+    []
   );
 
   // ==================== ACCOUNT OPERATIONS ====================
@@ -188,6 +195,54 @@ export function useSavings() {
     [accounts, setAccounts]
   );
 
+  // ==================== ACCOUNT CUSTOMIZATION ====================
+
+  /**
+   * Update an account's background theme
+   */
+  const updateAccountBackground = useCallback(
+    (accountId: string, background: BackgroundConfig): boolean => {
+      const exists = accounts.some((a) => a.id === accountId);
+      if (!exists) return false;
+
+      setAccounts((prev) =>
+        prev.map((a) =>
+          a.id === accountId ? { ...a, background } : a
+        )
+      );
+      return true;
+    },
+    [accounts, setAccounts]
+  );
+
+  // ==================== SUGGESTION OPERATIONS ====================
+
+  /**
+   * Add a Pokemon suggestion
+   */
+  const addSuggestion = useCallback(
+    (pokemonName: string, reason?: string): void => {
+      const newSuggestion: PokemonSuggestion = {
+        id: generateId(),
+        pokemonName,
+        reason,
+        createdAt: new Date().toISOString(),
+      };
+      setSuggestions((prev) => [newSuggestion, ...prev]);
+    },
+    [setSuggestions]
+  );
+
+  /**
+   * Delete a suggestion
+   */
+  const deleteSuggestion = useCallback(
+    (suggestionId: string): void => {
+      setSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
+    },
+    [setSuggestions]
+  );
+
   // ==================== SETTINGS OPERATIONS ====================
 
   /**
@@ -244,6 +299,7 @@ export function useSavings() {
     // State
     accounts,
     settings,
+    suggestions,
     accountsWithStats,
 
     // Account operations
@@ -256,6 +312,13 @@ export function useSavings() {
     // Entry operations
     addEntry,
     deleteEntry,
+
+    // Customization
+    updateAccountBackground,
+
+    // Suggestions
+    addSuggestion,
+    deleteSuggestion,
 
     // Settings operations
     updateSettings,

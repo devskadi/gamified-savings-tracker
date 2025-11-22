@@ -12,3 +12,5 @@ export { PokemonSelector } from './PokemonSelector';
 export { PokemonDetail } from './PokemonDetail';
 export { LevelUpOverlay, EvolutionOverlay } from './LevelUpOverlay';
 export { SettingsModal } from './SettingsModal';
+export { BackgroundPicker, getBackgroundStyle, getTextColor } from './BackgroundPicker';
+export { SuggestionBox } from './SuggestionBox';

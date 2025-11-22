@@ -18,19 +18,37 @@ const getSprite = (id: number | string): string => `${SPRITE_BASE}/${id}.png`;
 
 /**
  * Get animated sprite URL (Gen 5 style)
- * Falls back to static if animated doesn't exist
+ * Note: Animated sprites only exist for Pokemon IDs 1-649 (Gen 1-5)
+ * For newer Pokemon and regional forms, we use showdown sprites
  */
-const getAnimatedSprite = (id: number): string =>
-  `${SPRITE_BASE}/versions/generation-v/black-white/animated/${id}.gif`;
+const getAnimatedSprite = (id: number | string): string => {
+  const numId = typeof id === 'string' ? parseInt(id) : id;
+  // Gen 5 animated sprites exist for IDs 1-649
+  if (numId <= 649) {
+    return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${numId}.gif`;
+  }
+  // For newer Pokemon, use Pokemon Showdown's animated sprites
+  return `https://play.pokemonshowdown.com/sprites/ani/${id}.gif`;
+};
 
 /**
- * Helper to create a Pokemon stage
+ * Helper to create a Pokemon stage with both static and animated sprites
  */
-const createStage = (id: number | string, name: string): PokemonStage => ({
-  id: typeof id === 'string' ? parseInt(id) : id,
-  name,
-  spriteUrl: getSprite(id),
-});
+const createStage = (id: number | string, name: string): PokemonStage => {
+  const numId = typeof id === 'string' ? parseInt(id) : id;
+  // Convert name to showdown format for newer Pokemon (lowercase, no special chars)
+  const showdownName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  return {
+    id: numId,
+    name,
+    spriteUrl: getSprite(id),
+    // Use appropriate animated sprite source
+    animatedSpriteUrl: numId <= 649
+      ? getAnimatedSprite(numId)
+      : `https://play.pokemonshowdown.com/sprites/ani/${showdownName}.gif`,
+  };
+};
 
 /**
  * All starter Pokemon evolution lines from Gen 1-9 + Hisuian variants

@@ -3,10 +3,10 @@
 // ============================================
 // PokéSavings - Main Application Page
 // ============================================
-// A retro Game Boy-styled savings tracker
+// A modern savings tracker with Pokédex aesthetics
 // inspired by Pokémon FireRed/LeafGreen
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   PokedexFrame,
   PartyView,
@@ -15,12 +15,14 @@ import {
   SettingsModal,
   LevelUpOverlay,
   EvolutionOverlay,
+  SuggestionBox,
+  BackgroundPicker,
 } from '@/components';
 import { useSavings } from '@/hooks/useSavings';
 import { useAudio } from '@/hooks/useAudio';
-import { getPokemonLine } from '@/lib/pokemon-data';
+import { getPokemonLine, TYPE_COLORS } from '@/lib/pokemon-data';
 import { calculateAccountStats } from '@/lib/level-calculator';
-import { LevelUpEvent, AppView } from '@/types';
+import { LevelUpEvent, AppView, BackgroundConfig } from '@/types';
 
 /**
  * Main application component
@@ -33,12 +35,16 @@ export default function HomePage() {
   const {
     accounts,
     settings,
+    suggestions,
     accountsWithStats,
     createAccount,
     deleteAccount,
     getAccount,
     addEntry,
     deleteEntry,
+    updateAccountBackground,
+    addSuggestion,
+    deleteSuggestion,
     updateSettings,
     clearAllData,
     canAddAccount,
@@ -52,6 +58,8 @@ export default function HomePage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPokemonSelector, setShowPokemonSelector] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
 
   // Animation state
   const [levelUpEvent, setLevelUpEvent] = useState<LevelUpEvent | null>(null);
@@ -201,6 +209,20 @@ export default function HomePage() {
     setCurrentView('party');
   }, [clearAllData, play]);
 
+  /**
+   * Handle background change
+   */
+  const handleBackgroundChange = useCallback(
+    (background: BackgroundConfig) => {
+      if (selectedAccountId) {
+        updateAccountBackground(selectedAccountId, background);
+        play('select');
+      }
+      setShowBackgroundPicker(false);
+    },
+    [selectedAccountId, updateAccountBackground, play]
+  );
+
   // ==================== COMPUTED VALUES ====================
 
   // Get current account data if viewing detail
@@ -223,6 +245,11 @@ export default function HomePage() {
   // Get list of Pokemon IDs already in use
   const usedPokemonIds = accounts.map((a) => a.pokemonLineId);
 
+  // Get default type color for background picker
+  const defaultTypeColor = currentPokemonLine
+    ? `linear-gradient(135deg, ${TYPE_COLORS[currentPokemonLine.type].light} 0%, ${TYPE_COLORS[currentPokemonLine.type].primary} 100%)`
+    : '#6366f1';
+
   // ==================== RENDER ====================
 
   return (
@@ -235,6 +262,10 @@ export default function HomePage() {
           onSelectAccount={handleSelectAccount}
           onAddNew={handleOpenSelector}
           onOpenSettings={handleOpenSettings}
+          onOpenSuggestions={() => {
+            play('open');
+            setShowSuggestions(true);
+          }}
         />
       )}
 
@@ -254,6 +285,10 @@ export default function HomePage() {
             onDeleteEntry={(entryId) => handleDeleteEntry(currentAccount.id, entryId)}
             onRelease={() => handleRelease(currentAccount.id)}
             onBack={handleBackToParty}
+            onChangeBackground={() => {
+              play('open');
+              setShowBackgroundPicker(true);
+            }}
           />
         )}
 
@@ -277,6 +312,32 @@ export default function HomePage() {
           onUpdateSettings={updateSettings}
           onClose={handleCloseSettings}
           onResetData={handleResetData}
+        />
+      )}
+
+      {/* Suggestions Modal */}
+      {showSuggestions && (
+        <SuggestionBox
+          suggestions={suggestions}
+          onAddSuggestion={addSuggestion}
+          onDeleteSuggestion={deleteSuggestion}
+          onClose={() => {
+            play('close');
+            setShowSuggestions(false);
+          }}
+        />
+      )}
+
+      {/* Background Picker Modal */}
+      {showBackgroundPicker && currentAccount && (
+        <BackgroundPicker
+          currentBackground={currentAccount.background}
+          defaultTypeColor={defaultTypeColor}
+          onSelect={handleBackgroundChange}
+          onCancel={() => {
+            play('close');
+            setShowBackgroundPicker(false);
+          }}
         />
       )}
 
