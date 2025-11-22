@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Vercel deployment without backend
-  output: 'export',
-
   // Allow images from PokéAPI sprites
   images: {
     unoptimized: true,
@@ -14,9 +11,6 @@ const nextConfig = {
       },
     ],
   },
-
-  // Ensure trailing slashes for static export
-  trailingSlash: true,
 };
 
 module.exports = nextConfig;
